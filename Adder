@@ -1,0 +1,53 @@
+
+
+```python
+import os
+import time
+from telegram import Update, ChatAction
+from telegram.ext import Updater, CommandHandler, CallbackContext
+
+def start(update: Update, context: CallbackContext) -> None:
+    update.message.reply_text("Ciao! Invia il file .txt contenente gli username degli utenti da aggiungere al gruppo.")
+
+def add_users_from_file(update: Update, context: CallbackContext) -> None:
+    # Controllo se il messaggio contiene un file
+    if len(update.message.document) > 0:
+        file_id = update.message.document.file_id
+        file_path = context.bot.get_file(file_id).file_path
+        file_name = update.message.document.file_name
+        # Controllo se il file è un file .txt
+        if file_name.endswith('.txt'):
+            context.bot.send_chat_action(update.effective_chat.id, ChatAction.TYPING)
+            time.sleep(5)  # Pausa di 5 secondi per simulare il caricamento del file
+            # Controllo se il file esiste nella cartella del bot
+            if os.path.exists(file_path):
+                with open(file_path, 'r') as file:
+                    usernames = file.read().splitlines()
+                for username in usernames:
+                    # Controllo se l'utente è già presente nel gruppo
+                    if username in context.bot.get_chat_members(update.effective_chat.id):
+                        continue
+                    # Aggiungo l'utente al gruppo
+                    context.bot.add_chat_member(update.effective_chat.id, username)
+                    time.sleep(900)  # Pausa di 15 minuti tra un utente e l'altro
+                update.message.reply_text("Utenti aggiunti con successo!")
+            else:
+                update.message.reply_text("Il file non esiste nella cartella del bot.")
+        else:
+            update.message.reply_text("Il file deve essere un file .txt.")
+    else:
+        update.message.reply_text("Invia un file .txt contenente gli username degli utenti da aggiungere al gruppo.")
+
+def main() -> None:
+    # Inizializza il bot e aggiungi i gestori dei comandi
+    updater = Updater("TOKEN")
+    dispatcher = updater.dispatcher
+    dispatcher.add_handler(CommandHandler("start", start))
+    dispatcher.add_handler(CommandHandler("add_users", add_users_from_file))
+    # Avvia il bot
+    updater.start_polling()
+    updater.idle()
+
+if __name__ == '__main__':
+    main()
+```
